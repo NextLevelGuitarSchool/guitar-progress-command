@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guitar Progress Command</title>
+  <style>
+    :root{
+      --bg:#060907;
+      --case:#151a16;
+      --case2:#212820;
+      --line:#56614a;
+      --gold:#d8aa3b;
+      --cream:#f2e6b3;
+      --green:#80ed74;
+      --amber:#ffad21;
+      --red:#e74b3c;
+      --screen:#06150a;
+      --screen2:#0b2411;
+      --muted:#9ca58f;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:#000;color:var(--cream);font-family:Arial,Helvetica,sans-serif}
+    body{min-height:100vh;padding:14px}
+    button,input,select{font:inherit}
+    .app{max-width:1600px;margin:auto}
+    .console{
+      position:relative;
+      min-height:calc(100vh - 28px);
+      border:4px solid #0a0c09;
+      border-radius:24px;
+      padding:18px;
+      background:
+        radial-gradient(circle at 50% 0%,rgba(90,120,75,.12),transparent 38%),
+        repeating-linear-gradient(90deg,rgba(255,255,255,.018) 0 1px,transparent 1px 8px),
+        linear-gradient(#1a2019,#0f130f);
+      box-shadow:inset 0 0 0 2px var(--line),inset 0 0 60px rgba(0,0,0,.8);
+      overflow:hidden;
+    }
+    .console:after{
+      content:"";
+      pointer-events:none;
+      position:absolute;inset:0;
+      background:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 4px);
+      mix-blend-mode:screen;
+      opacity:.45;
+    }
+    .hud-row{display:grid;grid-template-columns:1fr 2.2fr 1fr;gap:12px;position:relative;z-index:1}
+    .panel{
+      background:linear-gradient(rgba(255,255,255,.025),rgba(0,0,0,.25)),var(--case2);
+      border:2px solid var(--line);
+      clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);
+      padding:12px;
+      box-shadow:inset 0 0 18px rgba(0,0,0,.7);
+    }
+    .screen{
+      background:linear-gradient(#07150b,#0a2210);
+      border:1px solid #3b5b3f;
+      color:var(--green);
+      text-shadow:0 0 8px rgba(128,237,116,.55);
+      box-shadow:inset 0 0 16px rgba(0,0,0,.85);
+    }
+    .title{
+      text-align:center;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+      font-weight:800;
+      color:var(--gold);
+      display:flex;flex-direction:column;justify-content:center
+    }
+    .title .main{font-size:clamp(22px,3vw,46px)}
+    .title .sub{font-size:clamp(10px,1.1vw,15px);color:var(--cream);margin-top:5px}
+    .tiny{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+    .player-name{font-family:monospace;font-size:clamp(26px,3vw,44px);padding:10px;margin-top:8px}
+    .status-line{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px}
+    .lamp{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green)}
+    .layout{
+      position:relative;z-index:1;
+      display:grid;
+      grid-template-columns:minmax(320px,38%) 1fr;
+      gap:12px;
+      margin-top:12px;
+    }
+    .skills{display:grid;grid-template-rows:auto repeat(5,1fr);gap:8px}
+    .section-title{
+      text-transform:uppercase;letter-spacing:.1em;color:var(--gold);font-weight:800;
+      display:flex;justify-content:space-between;align-items:center
+    }
+    .skill{
+      display:grid;grid-template-columns:54px 1fr 76px;gap:10px;align-items:center;
+      padding:8px;background:#111611;border:1px solid #46503e
+    }
+    .skill-num{
+      font-family:monospace;font-size:28px;color:var(--green);text-align:center;
+      border-right:1px solid #3c4939
+    }
+    .skill-label{color:var(--gold);font-weight:800;text-transform:uppercase;font-size:14px}
+    .skill-text{margin-top:5px;padding:7px;font-family:monospace;font-size:13px;min-height:42px}
+    .knob{
+      width:66px;height:66px;border-radius:50%;position:relative;
+      background:radial-gradient(circle at 35% 30%,#777,#252525 58%,#070707 73%);
+      border:3px solid #050505;box-shadow:inset 0 0 0 2px #555,0 4px 8px rgba(0,0,0,.75)
+    }
+    .knob:after{
+      content:"";position:absolute;left:50%;top:7px;transform:translateX(-50%);
+      width:4px;height:25px;border-radius:4px;background:var(--amber);box-shadow:0 0 7px var(--amber)
+    }
+    .missions{display:grid;grid-template-rows:auto 1fr auto;gap:8px}
+    .meter-grid{
+      display:grid;grid-template-columns:repeat(10,minmax(54px,1fr));gap:7px;
+      align-items:stretch;min-height:480px
+    }
+    .meter{
+      display:grid;grid-template-rows:auto auto 1fr auto;gap:6px;
+      background:#111611;border:1px solid #46503e;padding:7px;text-align:center
+    }
+    .meter-number{font-weight:800;color:var(--gold);font-size:16px}
+    .meter-label{font-size:11px;color:var(--gold);text-transform:uppercase;overflow-wrap:anywhere;min-height:28px}
+    .meter-score{font-family:monospace;color:var(--cream);font-size:12px}
+    .segments{
+      display:flex;flex-direction:column-reverse;gap:5px;justify-content:flex-start;min-height:300px
+    }
+    .segment{
+      flex:1;min-height:12px;max-height:25px;
+      background:#20251f;border:1px solid rgba(255,255,255,.08);border-radius:3px;opacity:.38
+    }
+    .segment.on.progress{background:var(--amber);opacity:1;box-shadow:0 0 9px rgba(255,173,33,.75)}
+    .segment.on.complete{background:var(--green);opacity:1;box-shadow:0 0 9px rgba(128,237,116,.8)}
+    .meter.not-started{border-color:#673329}
+    .meter.complete{border-color:#4f8a4b}
+    .legend{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;font-size:12px}
+    .legend-item{display:flex;align-items:center;gap:7px}
+    .swatch{width:18px;height:10px;border-radius:2px}
+    .swatch.red{background:var(--red);box-shadow:0 0 7px rgba(231,75,60,.65)}
+    .swatch.amber{background:var(--amber);box-shadow:0 0 7px rgba(255,173,33,.65)}
+    .swatch.green{background:var(--green);box-shadow:0 0 7px rgba(128,237,116,.65)}
+    .bottom{
+      position:relative;z-index:1;
+      display:grid;grid-template-columns:1fr 1.35fr 1fr;gap:12px;margin-top:12px
+    }
+    .objective{font-family:monospace;color:var(--green);font-size:14px;line-height:1.5}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    .btn{
+      border:1px solid var(--line);background:#111611;color:var(--cream);
+      padding:9px 12px;border-radius:6px;cursor:pointer
+    }
+    .btn:hover{border-color:var(--gold);color:var(--gold)}
+    .btn.primary{background:#1a2e1c;border-color:#4f8a4b;color:var(--green)}
+    .editor{
+      margin-top:14px;position:relative;z-index:2;
+      background:#111611;border:1px solid var(--line);padding:14px;border-radius:12px
+    }
+    .editor.hidden{display:none}
+    .editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .field-group{border:1px solid #3e4939;padding:10px;border-radius:8px}
+    label{display:block;font-size:12px;color:var(--gold);margin-top:8px}
+    input{
+      width:100%;margin-top:4px;padding:8px;border-radius:6px;border:1px solid #4b5745;
+      background:#07110a;color:var(--green)
+    }
+    .mapping{
+      margin-top:12px;padding:12px;border:1px dashed #51614e;background:#0e130f;font-size:12px;color:var(--muted)
+    }
+    .hidden-card{display:none}
+    @media (max-width:1100px){
+      .console{min-height:auto}
+      .layout{grid-template-columns:1fr}
+      .meter-grid{min-height:380px}
+      .bottom{grid-template-columns:1fr}
+    }
+    @media (max-width:760px){
+      body{padding:6px}
+      .hud-row{grid-template-columns:1fr}
+      .layout{grid-template-columns:1fr}
+      .meter-grid{grid-template-columns:repeat(5,1fr)}
+      .meter{min-height:270px}
+      .segments{min-height:180px}
+      .editor-grid{grid-template-columns:1fr}
+      .skill{grid-template-columns:42px 1fr 58px}
+      .knob{width:52px;height:52px}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <main class="console">
+    <section class="hud-row">
+      <div class="panel">
+        <div class="tiny">Player</div>
+        <div id="playerName" class="screen player-name">Alex</div>
+        <div class="status-line"><span class="lamp"></span><span>Profile loaded</span></div>
+      </div>
+      <div class="title panel">
+        <div class="main">Guitar Progress Command</div>
+        <div class="sub">Train · Practice · Complete Missions</div>
+      </div>
+      <div class="panel">
+        <div class="tiny">System Status</div>
+        <div class="screen" style="padding:10px;margin-top:8px">
+          <div>ONLINE</div>
+          <div id="missionStatus" style="margin-top:6px">KEEP PRACTICING</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <div class="panel skills">
+        <div class="section-title"><span>Skill Modules</span><span id="activeSkillCount">5 active</span></div>
+        <div id="skillsList"></div>
+      </div>
+
+      <div class="panel missions">
+        <div class="section-title"><span>Mission Progress</span><span id="missionCount">10 tracked</span></div>
+        <div id="meterGrid" class="meter-grid"></div>
+        <div class="legend">
+          <div class="legend-item"><span class="swatch red"></span>Not started</div>
+          <div class="legend-item"><span class="swatch amber"></span>In progress</div>
+          <div class="legend-item"><span class="swatch green"></span>Mission complete</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bottom">
+      <div class="panel">
+        <div class="section-title">Command Center</div>
+        <div class="controls" style="margin-top:10px">
+          <button class="btn primary" id="showEditorBtn">Teacher Controls</button>
+          <button class="btn" id="refreshBtn">Refresh Display</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="section-title">Next Objective</div>
+        <div id="nextObjective" class="screen objective" style="padding:12px;margin-top:8px"></div>
+      </div>
+      <div class="panel">
+        <div class="section-title">Motivation Feed</div>
+        <div class="screen objective" style="padding:12px;margin-top:8px">Every completed step brings you closer to guitar mastery.</div>
+      </div>
+    </section>
+  </main>
+
+  <section id="editor" class="editor hidden">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
+      <div>
+        <h2 style="margin:0;color:var(--gold)">Teacher Controls</h2>
+        <div style="font-size:13px;color:var(--muted);margin-top:4px">This local editor simulates the Google Sheet data connection.</div>
+      </div>
+      <button class="btn" id="closeEditorBtn">Close</button>
+    </div>
+
+    <label>Student name
+      <input id="playerInput" value="Alex">
+    </label>
+
+    <h3 style="color:var(--gold)">Skill Modules</h3>
+    <div id="skillEditor" class="editor-grid"></div>
+
+    <h3 style="color:var(--gold)">Mission Progress</h3>
+    <div id="missionEditor" class="editor-grid"></div>
+
+    <div class="mapping">
+      <strong>Google Sheet mapping planned:</strong><br>
+      Student Name · Skill 1 Label · Skill 1 Text ... Skill 5 Label · Skill 5 Text ·
+      Mission 1 Label · Mission 1 Achieved · Mission 1 Possible ... Mission 10 Label · Mission 10 Achieved · Mission 10 Possible.
+      Blank labels hide that module. Blank numbers become zero.
+    </div>
+  </section>
+</div>
+
+<script>
+const state = {
+  player: "Alex",
+  skills: [
+    {label:"Chords", text:"Level 4 – Smooth open-chord changes"},
+    {label:"Finger Picking", text:"Level 2 – Alternating thumb pattern"},
+    {label:"Lead Guitar", text:"Level 3 – Minor pentatonic phrases"},
+    {label:"Rhythm", text:"Level 5 – Eighth-note strumming"},
+    {label:"Fretboard", text:"Level 1 – Notes on the E String"}
+  ],
+  missions: [
+    {label:"Chords", achieved:7, possible:10},
+    {label:"Songs", achieved:3, possible:8},
+    {label:"Rhythm", achieved:6, possible:10},
+    {label:"Scales", achieved:4, possible:6},
+    {label:"Theory", achieved:2, possible:5},
+    {label:"Ear Training", achieved:5, possible:10},
+    {label:"Timing", achieved:8, possible:10},
+    {label:"Tone", achieved:3, possible:7},
+    {label:"Repertoire", achieved:6, possible:8},
+    {label:"Performance", achieved:1, possible:5}
+  ]
+};
+
+function cleanText(value){ return String(value ?? ""); }
+function safeNum(value){ return Math.max(0, Math.min(10, Number(value) || 0)); }
+
+function renderSkills(){
+  const list = document.getElementById("skillsList");
+  list.innerHTML = "";
+  let active = 0;
+  state.skills.forEach((item, index)=>{
+    if(!cleanText(item.label).trim()) return;
+    active++;
+    const row = document.createElement("article");
+    row.className = "skill";
+    row.innerHTML = `
+      <div class="skill-num">${String(index+1).padStart(2,"0")}</div>
+      <div>
+        <div class="skill-label"></div>
+        <div class="screen skill-text"></div>
+      </div>
+      <div class="knob" aria-hidden="true"></div>`;
+    row.querySelector(".skill-label").textContent = item.label;
+    row.querySelector(".skill-text").textContent = item.text || "";
+    list.appendChild(row);
+  });
+  document.getElementById("activeSkillCount").textContent = `${active} active`;
+}
+
+function renderMissions(){
+  const grid = document.getElementById("meterGrid");
+  grid.innerHTML = "";
+  let tracked = 0;
+  state.missions.forEach((item, index)=>{
+    if(!cleanText(item.label).trim()) return;
+    tracked++;
+    const possible = safeNum(item.possible);
+    const achieved = Math.min(safeNum(item.achieved), possible);
+    const complete = possible > 0 && achieved === possible;
+    const notStarted = achieved === 0;
+
+    const meter = document.createElement("article");
+    meter.className = "meter" + (complete ? " complete" : "") + (notStarted ? " not-started" : "");
+    const segments = document.createElement("div");
+    segments.className = "segments";
+
+    for(let i=0;i<possible;i++){
+      const seg = document.createElement("div");
+      seg.className = "segment";
+      if(i < achieved){
+        seg.classList.add("on", complete ? "complete" : "progress");
+      }
+      segments.appendChild(seg);
+    }
+
+    const num = document.createElement("div");
+    num.className = "meter-number";
+    num.textContent = String(index+1).padStart(2,"0");
+
+    const label = document.createElement("div");
+    label.className = "meter-label";
+    label.textContent = item.label;
+
+    const score = document.createElement("div");
+    score.className = "meter-score";
+    score.textContent = `${achieved} / ${possible}`;
+
+    meter.append(num,label,segments,score);
+    grid.appendChild(meter);
+  });
+  document.getElementById("missionCount").textContent = `${tracked} tracked`;
+}
+
+function updateObjective(){
+  const remaining = state.missions
+    .filter(m => cleanText(m.label).trim())
+    .map(m => {
+      const possible = safeNum(m.possible);
+      const achieved = Math.min(safeNum(m.achieved), possible);
+      return {...m, possible, achieved, remaining: Math.max(0, possible-achieved)};
+    })
+    .filter(m => m.possible > 0 && m.remaining > 0)
+    .sort((a,b)=>a.remaining-b.remaining)[0];
+
+  const box = document.getElementById("nextObjective");
+  if(!remaining){
+    box.textContent = "All active missions complete.";
+    document.getElementById("missionStatus").textContent = "MISSION COMPLETE";
+    return;
+  }
+  box.textContent = `Complete ${remaining.remaining} more step${remaining.remaining===1?"":"s"} in ${remaining.label} to finish this mission.`;
+  document.getElementById("missionStatus").textContent = "KEEP PRACTICING";
+}
+
+function renderAll(){
+  document.getElementById("playerName").textContent = state.player || "";
+  renderSkills();
+  renderMissions();
+  updateObjective();
+}
+
+function buildEditor(){
+  document.getElementById("playerInput").value = state.player;
+
+  const skillEditor = document.getElementById("skillEditor");
+  skillEditor.innerHTML = "";
+  state.skills.forEach((item,index)=>{
+    const group = document.createElement("div");
+    group.className = "field-group";
+    group.innerHTML = `
+      <strong>Skill ${index+1}</strong>
+      <label>Label<input data-kind="skill-label" data-index="${index}"></label>
+      <label>Displayed text<input data-kind="skill-text" data-index="${index}"></label>`;
+    const inputs = group.querySelectorAll("input");
+    inputs[0].value = item.label;
+    inputs[1].value = item.text;
+    skillEditor.appendChild(group);
+  });
+
+  const missionEditor = document.getElementById("missionEditor");
+  missionEditor.innerHTML = "";
+  state.missions.forEach((item,index)=>{
+    const group = document.createElement("div");
+    group.className = "field-group";
+    group.innerHTML = `
+      <strong>Mission ${index+1}</strong>
+      <label>Label<input data-kind="mission-label" data-index="${index}"></label>
+      <label>Achieved<input type="number" min="0" max="10" data-kind="mission-achieved" data-index="${index}"></label>
+      <label>Total possible<input type="number" min="0" max="10" data-kind="mission-possible" data-index="${index}"></label>`;
+    const inputs = group.querySelectorAll("input");
+    inputs[0].value = item.label;
+    inputs[1].value = item.achieved;
+    inputs[2].value = item.possible;
+    missionEditor.appendChild(group);
+  });
+}
+
+document.getElementById("showEditorBtn").addEventListener("click",()=>{
+  document.getElementById("editor").classList.remove("hidden");
+  document.getElementById("editor").scrollIntoView({behavior:"smooth"});
+});
+document.getElementById("closeEditorBtn").addEventListener("click",()=>{
+  document.getElementById("editor").classList.add("hidden");
+});
+document.getElementById("refreshBtn").addEventListener("click",renderAll);
+document.getElementById("playerInput").addEventListener("input",e=>{
+  state.player = e.target.value;
+  renderAll();
+});
+document.getElementById("editor").addEventListener("input",e=>{
+  const kind = e.target.dataset.kind;
+  const index = Number(e.target.dataset.index);
+  if(!kind || Number.isNaN(index)) return;
+  if(kind==="skill-label") state.skills[index].label = e.target.value;
+  if(kind==="skill-text") state.skills[index].text = e.target.value;
+  if(kind==="mission-label") state.missions[index].label = e.target.value;
+  if(kind==="mission-achieved") state.missions[index].achieved = e.target.value;
+  if(kind==="mission-possible") state.missions[index].possible = e.target.value;
+  renderAll();
+});
+
+buildEditor();
+renderAll();
+</script>
+</body>
+</html>
