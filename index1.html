@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NLG Student Console</title>
+  <style>
+    :root{
+      --black:#050706; --case:#121713; --panel:#1b221c; --panel2:#252d25;
+      --line:#596456; --orange:#f39a20; --gold:#d9a943; --green:#7ce970;
+      --red:#e4523e; --cream:#eee1af; --muted:#9ca797; --screen:#07150a;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:#000;color:var(--cream);font-family:Arial,Helvetica,sans-serif}
+    body{padding:10px}
+    button,select{font:inherit}
+    .app{max-width:1600px;margin:auto}
+    .console{
+      position:relative;min-height:calc(100vh - 20px);padding:16px;
+      border:4px solid #080a08;border-radius:24px;overflow:hidden;
+      background:
+        radial-gradient(circle at 50% -15%,rgba(102,132,91,.16),transparent 40%),
+        repeating-linear-gradient(90deg,rgba(255,255,255,.018) 0 1px,transparent 1px 8px),
+        linear-gradient(#1a201a,#0e120f);
+      box-shadow:inset 0 0 0 2px #4d574b,inset 0 0 55px rgba(0,0,0,.85)
+    }
+    .console::after{
+      content:"";pointer-events:none;position:absolute;inset:0;opacity:.38;
+      background:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 4px)
+    }
+    .hud{position:relative;z-index:1}
+    .panel{
+      border:2px solid var(--line);padding:11px;
+      background:linear-gradient(rgba(255,255,255,.025),rgba(0,0,0,.28)),var(--panel);
+      clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);
+      box-shadow:inset 0 0 18px rgba(0,0,0,.7)
+    }
+    .screen{
+      background:linear-gradient(#061108,#0a2110);border:1px solid #3f5b40;color:var(--green);
+      text-shadow:0 0 8px rgba(124,233,112,.4);box-shadow:inset 0 0 14px rgba(0,0,0,.85)
+    }
+    .tiny,.section-title{text-transform:uppercase;letter-spacing:.1em;color:var(--gold);font-weight:800}
+    .top{display:grid;grid-template-columns:1.15fr 1.8fr 1.15fr;gap:10px;align-items:stretch}
+    .profile{display:grid;grid-template-columns:92px 1fr;gap:10px;align-items:center}
+    .photo{
+      width:92px;height:92px;object-fit:cover;border:2px solid var(--orange);background:#0b0e0b;
+      clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)
+    }
+    .photo-placeholder{
+      width:92px;height:92px;display:grid;place-items:center;border:2px solid #495348;color:#657064;
+      background:repeating-linear-gradient(135deg,#151a16 0 8px,#101410 8px 16px);font-size:11px;text-align:center
+    }
+    .student-name{font-family:monospace;font-size:clamp(20px,2.5vw,36px);padding:8px;margin-top:5px}
+    .credit{margin-top:6px;font-family:monospace;color:var(--cream);font-size:13px}
+    .logo-bay{
+      display:flex;align-items:center;justify-content:center;text-align:center;position:relative;
+      min-height:125px;padding-top:4px
+    }
+    .logo-frame{
+      position:absolute;left:14%;right:14%;top:-16px;height:52px;border:2px solid #5d685a;border-bottom:0;
+      clip-path:polygon(18px 0,calc(100% - 18px) 0,100% 100%,0 100%);
+      background:linear-gradient(#222a22,#131814);z-index:-1
+    }
+    .logo{max-height:118px;max-width:72%;object-fit:contain;filter:drop-shadow(0 6px 8px #000)}
+    .brand-text{font-size:12px;letter-spacing:.18em;margin-top:0;text-transform:uppercase;color:var(--cream)}
+    .controls{display:grid;gap:8px;align-content:center}
+    select,.button{
+      width:100%;border:1px solid #53604f;border-radius:5px;background:#08120a;color:var(--green);padding:9px
+    }
+    .button{cursor:pointer;text-transform:uppercase;letter-spacing:.08em}
+    .button:hover{border-color:var(--orange);color:var(--orange)}
+    .status{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
+    .lamp{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 9px var(--green)}
+    .lamp.error{background:var(--red);box-shadow:0 0 9px var(--red)}
+    .main{display:grid;grid-template-columns:minmax(315px,38%) 1fr;gap:10px;margin-top:10px}
+    .skills{display:grid;grid-template-rows:auto repeat(5,minmax(74px,1fr));gap:7px}
+    .skill{
+      display:grid;grid-template-columns:40px 1fr 58px;gap:8px;align-items:center;padding:7px;
+      background:#101510;border:1px solid #475144
+    }
+    .skill.offline{opacity:.48;filter:saturate(.35)}
+    .skill-no{font-family:monospace;font-size:22px;color:var(--green);text-align:center}
+    .skill-label{font-weight:800;color:var(--orange);text-transform:uppercase;font-size:13px}
+    .skill-value{min-height:34px;padding:7px;margin-top:4px;font-family:monospace;font-size:12px;line-height:1.25}
+    .knob{
+      width:54px;height:54px;border-radius:50%;position:relative;border:3px solid #070807;
+      background:radial-gradient(circle at 35% 28%,#777,#252525 58%,#080808 73%);
+      box-shadow:inset 0 0 0 2px #555,0 3px 7px #000
+    }
+    .knob::after{content:"";position:absolute;left:50%;top:6px;transform:translateX(-50%);width:4px;height:20px;background:var(--orange);border-radius:3px}
+    .repertoire{display:grid;grid-template-rows:auto 1fr auto;gap:7px}
+    .meters{display:grid;grid-template-columns:repeat(10,minmax(45px,1fr));gap:5px;min-height:350px}
+    .meter{
+      display:grid;grid-template-rows:42px 1fr auto;gap:5px;padding:5px;text-align:center;
+      background:#101510;border:1px solid #475144;min-width:0
+    }
+    .meter.empty{opacity:.32}
+    .folder-icon{
+      width:100%;height:42px;object-fit:contain;background:#0b100c;border:1px solid #394337
+    }
+    .folder-fallback{height:42px;display:grid;place-items:center;color:#5d685b;font-size:9px;border:1px solid #394337}
+    .segments{display:flex;flex-direction:column-reverse;gap:4px;justify-content:flex-start;min-height:195px}
+    .seg{flex:1;min-height:9px;max-height:17px;border-radius:2px;background:#242a23;border:1px solid rgba(255,255,255,.08);opacity:.38}
+    .seg.progress{background:var(--orange);opacity:1;box-shadow:0 0 7px rgba(243,154,32,.75)}
+    .seg.complete{background:var(--green);opacity:1;box-shadow:0 0 7px rgba(124,233,112,.78)}
+    .meter-name{font-size:9px;line-height:1.1;text-transform:uppercase;color:var(--gold);overflow-wrap:anywhere;min-height:22px}
+    .meter-score{font-family:monospace;font-size:11px;margin-top:3px}
+    .legend{display:flex;justify-content:center;gap:17px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
+    .key{display:flex;align-items:center;gap:6px}.swatch{width:17px;height:8px;border-radius:2px}.amber{background:var(--orange)}.green{background:var(--green)}.dark{background:#252b24;border:1px solid #555}
+    .bottom{display:grid;grid-template-columns:1fr 1.8fr 1fr;gap:10px;margin-top:10px;align-items:center}
+    .motto{text-align:center;font-size:clamp(18px,2vw,30px);letter-spacing:.12em;color:var(--orange);font-weight:800}
+    .message{font-size:12px;color:var(--muted);line-height:1.35}
+    .error-box{display:none;margin-top:10px;padding:10px;border:1px solid var(--red);background:#2a100d;color:#ffd5cf;position:relative;z-index:2}
+    .error-box.show{display:block}
+    @media(max-width:1050px){
+      .top{grid-template-columns:1fr 1.2fr}.controls{grid-column:1/-1;grid-template-columns:1fr auto auto}
+      .main{grid-template-columns:1fr}.meters{min-height:280px}.segments{min-height:145px}
+    }
+    @media(max-width:720px){
+      body{padding:4px}.console{padding:9px;border-radius:14px}.top{grid-template-columns:1fr}
+      .controls{grid-template-columns:1fr}.profile{grid-template-columns:76px 1fr}.photo,.photo-placeholder{width:76px;height:76px}
+      .meters{grid-template-columns:repeat(5,1fr)}.meter{min-height:230px}.bottom{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <main class="console">
+    <div class="hud">
+      <header class="top">
+        <section class="panel profile">
+          <div id="photoWrap" class="photo-placeholder">STUDENT<br>PHOTO</div>
+          <div>
+            <div class="tiny">Student Profile</div>
+            <div id="studentName" class="screen student-name">Loading…</div>
+            <div class="credit">Credits: <span id="credits">0</span></div>
+          </div>
+        </section>
+
+        <section class="panel logo-bay">
+          <div class="logo-frame"></div>
+          <div>
+            <img class="logo" src="nlg-logo.png" alt="Next Level Guitar School NLG logo">
+            <div class="brand-text">Next Level Guitar School</div>
+          </div>
+        </section>
+
+        <section class="panel controls">
+          <div class="tiny">Student Select</div>
+          <select id="studentSelect" aria-label="Select student"><option>Loading students…</option></select>
+          <button id="refreshBtn" class="button" type="button">Refresh from Sheet</button>
+          <div class="status"><span id="statusLamp" class="lamp"></span><span id="statusText">Connecting to Google Sheets</span></div>
+        </section>
+      </header>
+
+      <section class="main">
+        <section class="panel skills">
+          <div class="section-title">Skill Modules</div>
+          <div id="skillList"></div>
+        </section>
+
+        <section class="panel repertoire">
+          <div class="section-title">Repertoire Songs Status</div>
+          <div id="meterGrid" class="meters"></div>
+          <div class="legend">
+            <span class="key"><span class="swatch dark"></span>Not completed</span>
+            <span class="key"><span class="swatch amber"></span>In progress</span>
+            <span class="key"><span class="swatch green"></span>Folder complete</span>
+          </div>
+        </section>
+      </section>
+
+      <footer class="bottom">
+        <section class="panel message">Data source: Google Sheets<br><span id="lastUpdated">Not loaded yet</span></section>
+        <section class="panel motto">Learn • Love • Play</section>
+        <section class="panel message" id="objective">Select a student to load their current progress.</section>
+      </footer>
+
+      <div id="errorBox" class="error-box"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const SHEET_ID = "1Vi-arONxgRuPQ6p91Xdm4izBjhRgtp3DreOXwboCAms";
+  const STUDENTS_TAB = "Students";
+  const LIBRARY_TAB = "SRS Library";
+
+  let studentsTable = null;
+  let libraryTable = null;
+  let students = [];
+  let library = new Map();
+
+  const $ = id => document.getElementById(id);
+  const normalize = value => String(value ?? "").replace(/\u200B/g, "").trim();
+  const number = value => Math.max(0, Number(value) || 0);
+
+  function gvizValue(cell) {
+    if (!cell) return "";
+    if (cell.v === null || cell.v === undefined) return "";
+    return cell.v;
+  }
+
+  function loadSheet(tabName) {
+    return new Promise((resolve, reject) => {
+      const oldGoogle = window.google;
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error(`Timed out while loading the "${tabName}" tab.`));
+      }, 15000);
+
+      const script = document.createElement("script");
+
+      function cleanup() {
+        clearTimeout(timeout);
+        script.remove();
+        if (oldGoogle === undefined) delete window.google;
+        else window.google = oldGoogle;
+      }
+
+      window.google = {
+        visualization: {
+          Query: {
+            setResponse(response) {
+              cleanup();
+              if (!response || response.status === "error") {
+                const message = response?.errors?.[0]?.detailed_message ||
+                  response?.errors?.[0]?.message ||
+                  `Google Sheets returned an error for "${tabName}".`;
+                reject(new Error(message));
+                return;
+              }
+              resolve(response.table);
+            }
+          }
+        }
+      };
+
+      script.onerror = () => {
+        cleanup();
+        reject(new Error(`Could not load the "${tabName}" tab. Check sharing and tab spelling.`));
+      };
+
+      const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq`;
+      script.src = `${base}?sheet=${encodeURIComponent(tabName)}&tqx=out:json&headers=1&_=${Date.now()}`;
+      document.head.appendChild(script);
+    });
+  }
+
+  function tableToObjects(table) {
+    const headers = table.cols.map((col, index) => normalize(col.label || col.id || `Column ${index + 1}`));
+    return (table.rows || []).map(row => {
+      const item = {};
+      headers.forEach((header, index) => {
+        item[header] = gvizValue(row.c?.[index]);
+      });
+      item.__headers = headers;
+      item.__cells = row.c || [];
+      return item;
+    });
+  }
+
+  function findHeader(headers, candidates) {
+    const normalized = headers.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ""));
+    for (const candidate of candidates) {
+      const target = candidate.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const index = normalized.indexOf(target);
+      if (index >= 0) return headers[index];
+    }
+    return null;
+  }
+
+  function directImageUrl(url) {
+    const value = normalize(url);
+    if (!value) return "";
+    const driveMatch = value.match(/\/d\/([a-zA-Z0-9_-]+)/) || value.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (driveMatch) return `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=w500`;
+    return value;
+  }
+
+  function parseLibrary(rows) {
+    library = new Map();
+    if (!rows.length) return;
+    const headers = rows[0].__headers;
+    const nameKey = findHeader(headers, ["Name", "Folder Name", "SRS Name"]);
+    const graphicKey = findHeader(headers, ["Graphic URL", "Graphic", "Image URL"]);
+    const possibleKey = findHeader(headers, ["Possible", "Total Possible", "Required"]);
+    const orderKey = findHeader(headers, ["Order", "Display Order"]);
+
+    if (!nameKey || !possibleKey) {
+      throw new Error('The "SRS Library" tab needs at least Name and Possible columns.');
+    }
+
+    rows.forEach(row => {
+      const name = normalize(row[nameKey]);
+      if (!name) return;
+      library.set(name.toLowerCase(), {
+        name,
+        graphic: graphicKey ? directImageUrl(row[graphicKey]) : "",
+        possible: Math.min(10, number(row[possibleKey])),
+        order: orderKey ? number(row[orderKey]) : 999
+      });
+    });
+  }
+
+  function parseStudents(rows) {
+    if (!rows.length) return [];
+    const headers = rows[0].__headers;
+    const nameKey = findHeader(headers, ["Student Name", "Student"]);
+    const photoKey = findHeader(headers, ["Photo URL", "Student Photo", "Photo"]);
+    const creditsKey = findHeader(headers, ["Credits", "Credit"]);
+
+    if (!nameKey) throw new Error('The "Students" tab needs a "Student Name" column.');
+
+    const fixed = new Set([nameKey, photoKey, creditsKey].filter(Boolean));
+    const srsHeaders = headers.filter(h => /^SRS\s*\d+\s*(Name|Folder|Achieved|Completed)$/i.test(h));
+    srsHeaders.forEach(h => fixed.add(h));
+
+    const skillHeaders = headers.filter(h => !fixed.has(h)).slice(0, 5);
+
+    return rows
+      .filter(row => normalize(row[nameKey]))
+      .map(row => {
+        const srs = [];
+        for (let i = 1; i <= 10; i++) {
+          const folderKey = findHeader(headers, [`SRS ${i} Name`, `SRS ${i} Folder`]);
+          const achievedKey = findHeader(headers, [`SRS ${i} Achieved`, `SRS ${i} Completed`]);
+          srs.push({
+            folder: folderKey ? normalize(row[folderKey]) : "",
+            achieved: achievedKey ? number(row[achievedKey]) : 0
+          });
+        }
+        return {
+          name: normalize(row[nameKey]),
+          photo: photoKey ? directImageUrl(row[photoKey]) : "",
+          credits: creditsKey ? number(row[creditsKey]) : 0,
+          skills: skillHeaders.map(header => ({ label: header, value: normalize(row[header]) })),
+          srs
+        };
+      });
+  }
+
+  function setStatus(text, error = false) {
+    $("statusText").textContent = text;
+    $("statusLamp").classList.toggle("error", error);
+  }
+
+  function showError(message) {
+    $("errorBox").textContent = message;
+    $("errorBox").classList.add("show");
+    setStatus("Connection error", true);
+  }
+
+  function clearError() {
+    $("errorBox").classList.remove("show");
+    $("errorBox").textContent = "";
+  }
+
+  function renderPhoto(student) {
+    const wrap = $("photoWrap");
+    wrap.innerHTML = "";
+    if (!student.photo) {
+      wrap.className = "photo-placeholder";
+      wrap.innerHTML = "STUDENT<br>PHOTO";
+      return;
+    }
+    const img = document.createElement("img");
+    img.className = "photo";
+    img.alt = `${student.name} student photo`;
+    img.src = student.photo;
+    img.onerror = () => {
+      wrap.className = "photo-placeholder";
+      wrap.innerHTML = "PHOTO<br>UNAVAILABLE";
+    };
+    wrap.className = "";
+    wrap.appendChild(img);
+  }
+
+  function renderSkills(student) {
+    const list = $("skillList");
+    list.innerHTML = "";
+    const skills = [...student.skills];
+    while (skills.length < 5) {
+      skills.push({ label: `OFFLINE ${skills.length - 2}`, value: "" });
+    }
+
+    skills.slice(0, 5).forEach((skill, index) => {
+      const offline = /^offline\b/i.test(skill.label) || !normalize(skill.value);
+      const row = document.createElement("article");
+      row.className = `skill${offline ? " offline" : ""}`;
+      row.innerHTML = `
+        <div class="skill-no">${String(index + 1).padStart(2, "0")}</div>
+        <div>
+          <div class="skill-label"></div>
+          <div class="screen skill-value"></div>
+        </div>
+        <div class="knob" aria-hidden="true"></div>`;
+      row.querySelector(".skill-label").textContent = skill.label || `OFFLINE ${index + 1}`;
+      row.querySelector(".skill-value").textContent = skill.value || "SYSTEM OFFLINE";
+      list.appendChild(row);
+    });
+  }
+
+  function renderRepertoire(student) {
+    const grid = $("meterGrid");
+    grid.innerHTML = "";
+
+    let closest = null;
+    student.srs.slice(0, 10).forEach((slot, index) => {
+      const info = slot.folder ? library.get(slot.folder.toLowerCase()) : null;
+      const possible = info ? Math.min(10, number(info.possible)) : 0;
+      const achieved = Math.min(number(slot.achieved), possible);
+      const complete = possible > 0 && achieved >= possible;
+
+      if (possible > achieved && possible > 0) {
+        const remaining = possible - achieved;
+        if (!closest || remaining < closest.remaining) {
+          closest = { name: info?.name || slot.folder, remaining };
+        }
+      }
+
+      const meter = document.createElement("article");
+      meter.className = `meter${!slot.folder ? " empty" : ""}`;
+
+      const graphic = document.createElement("div");
+      if (info?.graphic) {
+        const img = document.createElement("img");
+        img.className = "folder-icon";
+        img.src = info.graphic;
+        img.alt = `${info.name} folder graphic`;
+        img.onerror = () => {
+          graphic.className = "folder-fallback";
+          graphic.textContent = "SRS";
+          graphic.replaceChildren(document.createTextNode("SRS"));
+        };
+        graphic.appendChild(img);
+      } else {
+        graphic.className = "folder-fallback";
+        graphic.textContent = slot.folder ? "SRS" : "EMPTY";
+      }
+
+      const segments = document.createElement("div");
+      segments.className = "segments";
+      for (let i = 0; i < possible; i++) {
+        const segment = document.createElement("span");
+        segment.className = "seg";
+        if (i < achieved) segment.classList.add(complete ? "complete" : "progress");
+        segments.appendChild(segment);
+      }
+
+      const footer = document.createElement("div");
+      const name = document.createElement("div");
+      name.className = "meter-name";
+      name.textContent = info?.name || slot.folder || `SRS ${index + 1}`;
+      const score = document.createElement("div");
+      score.className = "meter-score";
+      score.textContent = possible ? `${achieved} / ${possible}` : "—";
+      footer.append(name, score);
+
+      meter.append(graphic, segments, footer);
+      grid.appendChild(meter);
+    });
+
+    $("objective").textContent = closest
+      ? `${closest.remaining} more song${closest.remaining === 1 ? "" : "s"} to complete ${closest.name}.`
+      : "All selected repertoire folders are complete or not yet assigned.";
+  }
+
+  function renderStudent(index) {
+    const student = students[index];
+    if (!student) return;
+    $("studentName").textContent = student.name;
+    $("credits").textContent = student.credits;
+    renderPhoto(student);
+    renderSkills(student);
+    renderRepertoire(student);
+  }
+
+  function populateStudentSelect() {
+    const select = $("studentSelect");
+    select.innerHTML = "";
+    students.forEach((student, index) => {
+      const option = document.createElement("option");
+      option.value = String(index);
+      option.textContent = student.name;
+      select.appendChild(option);
+    });
+    select.disabled = students.length === 0;
+    if (students.length) renderStudent(0);
+  }
+
+  async function refresh() {
+    clearError();
+    setStatus("Loading Google Sheets");
+    $("refreshBtn").disabled = true;
+    try {
+      studentsTable = await loadSheet(STUDENTS_TAB);
+      libraryTable = await loadSheet(LIBRARY_TAB);
+      const studentRows = tableToObjects(studentsTable);
+      const libraryRows = tableToObjects(libraryTable);
+      parseLibrary(libraryRows);
+      students = parseStudents(studentRows);
+      if (!students.length) throw new Error('No student rows were found in the "Students" tab.');
+      populateStudentSelect();
+      $("lastUpdated").textContent = `Loaded ${new Date().toLocaleString()}`;
+      setStatus("Google Sheets connected");
+    } catch (error) {
+      showError(error.message || String(error));
+    } finally {
+      $("refreshBtn").disabled = false;
+    }
+  }
+
+  $("studentSelect").addEventListener("change", event => renderStudent(Number(event.target.value)));
+  $("refreshBtn").addEventListener("click", refresh);
+  refresh();
+})();
+</script>
+</body>
+</html>
